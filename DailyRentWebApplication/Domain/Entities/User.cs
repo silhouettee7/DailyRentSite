@@ -16,4 +16,5 @@ public class User
     public List<Booking> Bookings { get; set; } = new List<Booking>();
     public List<Review> Reviews { get; set; } = new List<Review>();
     public List<CompensationRequest> CompensationRequests { get; set; } = new List<CompensationRequest>();
+    public List<RefreshSession> RefreshSessions { get; set; } = new();
 }

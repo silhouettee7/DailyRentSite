@@ -1,15 +1,32 @@
 using System.Text;
 using Api.Auth;
 using Api.Configuration.Options;
+using Api.Services;
+using Api.Utils;
 using Domain.Abstractions.Auth;
+using Domain.Abstractions.Repositories;
+using Domain.Abstractions.Services;
+using Domain.Models.Dtos;
+using Infrastructure.DataBase.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Api.Extensions;
 
-public static class AuthExtensions
+public static class ServiceCollectionExtensions
 {
+    public static IServiceCollection AddApiServices(this IServiceCollection services)
+    {
+        services.AddScoped<IUserService, UserService>();
+        return services;
+    }
+
+    public static IServiceCollection AddRepositories(this IServiceCollection services)
+    {
+        services.AddScoped<IUserRepository, UserRepository>();
+        return services;
+    }
     public static IServiceCollection AddAuth(this IServiceCollection services, IConfiguration config)
     {
         services.AddScoped(typeof(IPasswordHasher<>), typeof(PasswordHasher<>));
@@ -33,6 +50,12 @@ public static class AuthExtensions
                 };
             });
         services.AddAuthorization();
+        return services;
+    }
+
+    public static IServiceCollection AddUtils(this IServiceCollection services)
+    {
+        services.AddSingleton<HttpResponseResultCreator>();
         return services;
     }
 }

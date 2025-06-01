@@ -1,5 +1,6 @@
 using Domain.Models;
 using Domain.Models.Dtos;
+using Domain.Models.Result;
 
 namespace Domain.Abstractions.Auth;
 

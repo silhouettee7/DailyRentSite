@@ -4,6 +4,7 @@ using Domain.Entities;
 using Domain.Models;
 using Domain.Models.Dtos;
 using Domain.Models.Jwt;
+using Domain.Models.Result;
 using Microsoft.AspNetCore.Identity;
 
 namespace Api.Auth;
@@ -20,13 +21,13 @@ public class AuthService(
             .GetByFilterAsync(u => u.Email == userLoginDto.Email);
         if (user == null)
         {
-            return Result<(string accessToken, Guid refreshToken)>.Failure("User not found");
+            return Result<(string accessToken, Guid refreshToken)>.Failure(new Error("User not found", ErrorType.NotFound));
         }
 
         if (hasher.VerifyHashedPassword(user, user.PasswordHash,userLoginDto.Password) !=
             PasswordVerificationResult.Success)
         {
-            return Result<(string accessToken, Guid refreshToken)>.Failure("Password invalid");
+            return Result<(string accessToken, Guid refreshToken)>.Failure(new Error("Password invalid", ErrorType.BadRequest));
         }
 
         var userJwtAccessModel = new UserJwtAccessModel
@@ -53,18 +54,18 @@ public class AuthService(
         if (currentSession == null)
         {
             await refreshSessionRepository.DeleteAllUserSessions(userId);
-            return Result<(string accessToken, Guid refreshToken)>.Failure("Session not found");
+            return Result<(string accessToken, Guid refreshToken)>.Failure(new Error("Session not found", ErrorType.NotFound));
         }
         refreshSessionRepository.Delete(currentSession);
         if (!currentSession.Fingerprint.Equals(fingerprint) ||
             (DateTime.UtcNow - currentSession.CreatedAt).Minutes >= currentSession.ExpiresInMinutes)
         {
-            return Result<(string accessToken, Guid refreshToken)>.Failure("Session expired or fingerprint is invalid");
+            return Result<(string accessToken, Guid refreshToken)>.Failure(new Error("Session expired or fingerprint is invalid", ErrorType.BadRequest));
         }
         var user = currentSession.User;
         if (user == null)
         {
-            return Result<(string accessToken, Guid refreshToken)>.Failure("User not found for refresh session");
+            return Result<(string accessToken, Guid refreshToken)>.Failure(new Error("User not found for refresh session", ErrorType.NotFound));
         }
         var userJwtAccessModel = new UserJwtAccessModel
         {
