@@ -1,0 +1,10 @@
+using Domain.Models;
+using Domain.Models.Dtos;
+
+namespace Domain.Abstractions.Auth;
+
+public interface IAuthService
+{
+    Task<Result<(string accessToken, Guid refreshToken)>> AuthenticateAsync(UserLoginDto userLoginDto);
+    Task<Result<(string accessToken, Guid refreshToken)>> UpdateRefreshTokenAsync(Guid refreshTokenId, string fingerprint, int userId);
+}
