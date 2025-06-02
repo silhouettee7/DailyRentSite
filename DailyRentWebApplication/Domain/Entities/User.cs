@@ -12,9 +12,10 @@ public class User
     public DateTime RegistrationDate { get; set; } = DateTime.UtcNow;
     public bool IsDeleted { get; set; }
     
-    public List<Property> OwnedProperties { get; set; } = new List<Property>();
-    public List<Booking> Bookings { get; set; } = new List<Booking>();
-    public List<Review> Reviews { get; set; } = new List<Review>();
-    public List<CompensationRequest> CompensationRequests { get; set; } = new List<CompensationRequest>();
+    public List<Property> OwnedProperties { get; set; } = new ();
+    public List<Property> FavoriteProperties { get; set; } = new();
+    public List<Booking> Bookings { get; set; } = new ();
+    public List<Review> Reviews { get; set; } = new ();
+    public List<CompensationRequest> CompensationRequests { get; set; } = new();
     public List<RefreshSession> RefreshSessions { get; set; } = new();
 }

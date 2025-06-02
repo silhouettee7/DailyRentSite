@@ -16,8 +16,8 @@ public class JwtWorker(IOptionsMonitor<JwtOptions> options): IJwtTokenGenerator
     {
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.Role, userJwtAccessModel.Role),
-            new Claim(ClaimTypes.NameIdentifier, userJwtAccessModel.Id.ToString())
+            new (ClaimTypes.Role, userJwtAccessModel.Role),
+            new (ClaimTypes.NameIdentifier, userJwtAccessModel.Id.ToString())
         };
         var jwtOptions = options.CurrentValue;
         var jwtToken = new JwtSecurityToken(

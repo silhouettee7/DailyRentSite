@@ -1,3 +1,4 @@
+using Api.Filters;
 using Domain.Abstractions.Services;
 using Domain.Entities;
 using Domain.Models.Dtos;
@@ -11,7 +12,8 @@ public static class UserEndPointsExt
         var userGroup = endpoints.MapGroup("/users");
         
         userGroup.MapPost("/register", async (UserRegisterDto userRegisterDto, IUserService userService) => 
-            await userService.RegisterUserAsync(userRegisterDto));
+            await userService.RegisterUserAsync(userRegisterDto))
+            .AddEndpointFilter<ValidationFilter<UserRegisterDto>>();
 
         return endpoints;
     }

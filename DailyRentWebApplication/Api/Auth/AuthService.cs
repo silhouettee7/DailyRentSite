@@ -45,7 +45,7 @@ public class AuthService(
         var refreshSession = jwtTokenGenerator.GenerateRefreshSession(userJwtRefreshModel);
         await refreshSessionRepository.AddAsync(refreshSession);
         await refreshSessionRepository.SaveChangesAsync();
-        return Result<(string accessToken, Guid refreshToken)>.Success((accessToken, refreshSession.Id));
+        return Result<(string accessToken, Guid refreshToken)>.Success(SuccessType.Created,(accessToken, refreshSession.Id));
     }
 
     public async Task<Result<(string accessToken, Guid refreshToken)>> UpdateRefreshTokenAsync(Guid refreshTokenId, string fingerprint, int userId)
@@ -82,6 +82,6 @@ public class AuthService(
         var refreshSession = jwtTokenGenerator.GenerateRefreshSession(userJwtRefreshModel);
         await refreshSessionRepository.AddAsync(refreshSession);
         await refreshSessionRepository.SaveChangesAsync();
-        return Result<(string accessToken, Guid refreshToken)>.Success((accessToken, refreshSession.Id));
+        return Result<(string accessToken, Guid refreshToken)>.Success(SuccessType.Created, (accessToken, refreshSession.Id));
     }
 }

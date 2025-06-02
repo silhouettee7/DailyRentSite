@@ -13,13 +13,12 @@ public class Booking
     public int AdultsCount { get; set; }
     public int ChildrenCount { get; set; }
     public bool HasPets { get; set; }
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; } 
     
     public int PropertyId { get; set; }
     public int TenantId { get; set; }
     
     public Property Property { get; set; }
     public User Tenant { get; set; }
-    public Review Review { get; set; }
-    public List<CompensationRequest> CompensationRequests { get; set; } = new List<CompensationRequest>();
+    public List<CompensationRequest> CompensationRequests { get; set; } = new();
 }

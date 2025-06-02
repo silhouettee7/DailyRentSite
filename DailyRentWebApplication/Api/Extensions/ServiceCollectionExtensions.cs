@@ -8,6 +8,8 @@ using Domain.Abstractions.Repositories;
 using Domain.Abstractions.Services;
 using Domain.Models.Dtos;
 using Infrastructure.DataBase.Repositories;
+using Infrastructure.FileStorage;
+using Infrastructure.FileStorage.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -19,12 +21,16 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApiServices(this IServiceCollection services)
     {
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IBookingService, BookingService>();
+        services.AddScoped<IPropertyService, PropertyService>();
         return services;
     }
 
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IPropertyRepository, PropertyRepository>();
+        services.AddScoped<IRefreshSessionRepository, RefreshSessionRepository>();
         return services;
     }
     public static IServiceCollection AddAuth(this IServiceCollection services, IConfiguration config)
@@ -55,7 +61,15 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddUtils(this IServiceCollection services)
     {
-        services.AddSingleton<HttpResponseResultCreator>();
+        services.AddSingleton<HttpResponseCreator>();
+        services.AddSingleton<FileWorker>();
+        return services;
+    }
+
+    public static IServiceCollection AddFileStorage(this IServiceCollection services, IConfiguration config)
+    {
+        services.Configure<MinioOptions>(config.GetSection("MinioConfig"));
+        services.AddScoped<IFileStorageService, MinioService>();
         return services;
     }
 }

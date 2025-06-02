@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Api.Filters;
 using Api.Utils;
 using Domain.Abstractions.Auth;
 using Domain.Models.Dtos;
@@ -12,7 +13,7 @@ public static class AuthEndPointsExt
         var group = endpoints.MapGroup("/auth");
 
         group.MapPost("/login", async (UserLoginDto userLoginDto, IAuthService authService, 
-            HttpContext context, IConfiguration config, HttpResponseResultCreator responseCreator) =>
+            HttpContext context, IConfiguration config, HttpResponseCreator responseCreator) =>
         {
             var tokens = await authService.AuthenticateAsync(userLoginDto);
             if (!tokens.IsSuccess)
@@ -31,10 +32,11 @@ public static class AuthEndPointsExt
             };
             context.Response.Cookies.Append("refreshToken", tokens.Value.refreshToken.ToString(), cookieOptions);
             return Results.Ok(tokens.Value.accessToken);
-        });
+        })
+        .AddEndpointFilter<ValidationFilter<UserLoginDto>>();
 
         group.MapPost("/refresh", async (string fingerprint, IAuthService authService,
-            HttpContext context, IConfiguration config, HttpResponseResultCreator responseCreator) =>
+            HttpContext context, IConfiguration config, HttpResponseCreator responseCreator) =>
         {
             var refreshId = Guid.Parse(context.Request.Cookies["refreshToken"] ?? Guid.Empty.ToString());
             var userId =
@@ -42,7 +44,7 @@ public static class AuthEndPointsExt
             var tokens = await authService.UpdateRefreshTokenAsync(refreshId, fingerprint, userId);
             if (!tokens.IsSuccess)
             {
-                return Results.BadRequest(tokens);
+                return responseCreator.CreateResponse(tokens);
             }
 
             var cookieOptions = new CookieOptions
@@ -55,7 +57,7 @@ public static class AuthEndPointsExt
                 Path = "/auth"
             };
             context.Response.Cookies.Append("refreshToken", tokens.Value.refreshToken.ToString(), cookieOptions);
-            return Results.Ok(tokens.Value.accessToken);
+            return responseCreator.CreateResponse(tokens);
         });
         
         return endpoints;

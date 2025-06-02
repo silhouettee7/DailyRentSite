@@ -18,6 +18,6 @@ public class UserService(IUserRepository userRepository, IPasswordHasher<User> h
         user.PasswordHash = hasher.HashPassword(user, dto.Password);
         await userRepository.AddAsync(user);
         await userRepository.SaveChangesAsync();
-        return Result.Success();
+        return Result.Success(SuccessType.Created);
     }
 }

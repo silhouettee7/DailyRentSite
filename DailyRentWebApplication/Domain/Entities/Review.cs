@@ -6,7 +6,7 @@ public class Review
     public int Rating { get; set; }
     public string Comment { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
-    public bool IsDeleted { get; set; } = false;
+    public bool IsDeleted { get; set; }
     
     public int PropertyId { get; set; }
     public int AuthorId { get; set; }
