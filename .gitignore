@@ -355,3 +355,5 @@ appsettings.Secrets.json
 .idea/
 
 global.json
+appsettings.*.json
+!appsettings.json
