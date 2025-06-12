@@ -10,7 +10,5 @@ public class AmenityConfiguration : IEntityTypeConfiguration<Amenity>
     {
         builder.HasKey(a => a.Id);
         builder.Property(a => a.Name).HasMaxLength(100).IsRequired();
-        builder.Property(a => a.IconUrl);
-        builder.Property(a => a.IsDeleted).HasDefaultValue(false);
     }
 }

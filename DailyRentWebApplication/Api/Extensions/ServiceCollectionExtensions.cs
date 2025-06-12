@@ -1,15 +1,20 @@
 using System.Text;
 using Api.Auth;
+using Api.BackgroundServices;
 using Api.Configuration.Options;
 using Api.Services;
 using Api.Utils;
 using Domain.Abstractions.Auth;
+using Domain.Abstractions.Clients;
 using Domain.Abstractions.Repositories;
 using Domain.Abstractions.Services;
 using Domain.Models.Dtos;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Infrastructure.DataBase.Repositories;
 using Infrastructure.FileStorage;
 using Infrastructure.FileStorage.Options;
+using Infrastructure.PaymentSystem;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -23,6 +28,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IPropertyService, PropertyService>();
+        services.AddScoped<ICompensationRequestService, CompensationRequestService>();
+        services.AddScoped<IReviewService, ReviewService>();
+        services.AddScoped<IPaymentService, PaymentService>();
         return services;
     }
 
@@ -47,6 +55,7 @@ public static class ServiceCollectionExtensions
                 options.ClaimsIssuer = config["AuthConfig:Issuer"];
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
+                    ValidIssuer = config["AuthConfig:Issuer"],
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     RequireExpirationTime = true,
@@ -70,6 +79,25 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<MinioOptions>(config.GetSection("MinioConfig"));
         services.AddScoped<IFileStorageService, MinioService>();
+        return services;
+    }
+
+    public static IServiceCollection AddBackgroundJobs(this IServiceCollection services, IConfiguration config)
+    { 
+        services.AddHangfire(configuration => 
+            configuration.UsePostgreSqlStorage(options => 
+                options.UseNpgsqlConnection(config.GetConnectionString("HangfireConnection"))));
+        services.AddScoped<PaymentStatusCheckJob>();
+        return services;
+    }
+
+    public static IServiceCollection AddHttpClients(this IServiceCollection services, IConfiguration config)
+    {
+        services.AddHttpClient<IPaymentApiClient, PaymentApiClient>(client =>
+        {
+            client.BaseAddress = new Uri(config.GetSection("PaymentConfig:BaseAddress").Value!);
+        });
+
         return services;
     }
 }

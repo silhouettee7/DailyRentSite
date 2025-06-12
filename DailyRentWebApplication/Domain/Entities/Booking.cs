@@ -20,5 +20,5 @@ public class Booking
     
     public Property Property { get; set; }
     public User Tenant { get; set; }
-    public List<CompensationRequest> CompensationRequests { get; set; } = new();
+    public CompensationRequest CompensationRequest { get; set; }
 }

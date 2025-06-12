@@ -4,6 +4,5 @@ public enum CompensationStatus
 {
     Pending,
     Approved,
-    Rejected,
-    Paid
+    Rejected
 }

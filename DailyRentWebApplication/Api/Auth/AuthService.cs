@@ -3,6 +3,7 @@ using Domain.Abstractions.Repositories;
 using Domain.Entities;
 using Domain.Models;
 using Domain.Models.Dtos;
+using Domain.Models.Dtos.User;
 using Domain.Models.Jwt;
 using Domain.Models.Result;
 using Microsoft.AspNetCore.Identity;
@@ -82,6 +83,6 @@ public class AuthService(
         var refreshSession = jwtTokenGenerator.GenerateRefreshSession(userJwtRefreshModel);
         await refreshSessionRepository.AddAsync(refreshSession);
         await refreshSessionRepository.SaveChangesAsync();
-        return Result<(string accessToken, Guid refreshToken)>.Success(SuccessType.Created, (accessToken, refreshSession.Id));
+        return Result<(string accessToken, Guid refreshToken)>.Success(SuccessType.Ok, (accessToken, refreshSession.Id));
     }
 }

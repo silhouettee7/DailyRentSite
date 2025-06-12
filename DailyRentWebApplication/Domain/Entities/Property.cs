@@ -21,5 +21,4 @@ public class Property
     public List<PropertyImage> Images { get; set; } = new ();
     public List<Amenity> Amenities { get; set; } = new ();
     public List<Review> Reviews { get; set; } = new ();
-    public List<CompensationRequest> CompensationRequests { get; set; } = new();
 }

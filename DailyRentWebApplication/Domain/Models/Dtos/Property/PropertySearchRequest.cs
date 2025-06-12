@@ -1,4 +1,4 @@
-namespace Domain.Models.Dtos;
+namespace Domain.Models.Dtos.Property;
 
 public class PropertySearchRequest
 {

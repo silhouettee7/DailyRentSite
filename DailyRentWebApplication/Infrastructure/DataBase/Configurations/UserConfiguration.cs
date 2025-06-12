@@ -14,7 +14,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Phone).HasMaxLength(20);
         builder.Property(u => u.PasswordHash).IsRequired();
         builder.Property(u => u.Balance).HasColumnType("decimal(18,2)");
-        builder.Property(u => u.IsDeleted).HasDefaultValue(false);
         
         builder.HasMany(u => u.OwnedProperties)
             .WithOne(p => p.Owner)

@@ -24,7 +24,7 @@ public class JwtWorker(IOptionsMonitor<JwtOptions> options): IJwtTokenGenerator
             audience: jwtOptions.Audience,
             issuer: jwtOptions.Issuer,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(jwtOptions.ExpiredAtMinutesAccess),
+            expires: DateTime.Now.AddMinutes(jwtOptions.ExpiredAtMinutesAccess),
             signingCredentials: new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.IssuerSecretKey)),
                 SecurityAlgorithms.HmacSha256)

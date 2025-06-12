@@ -1,4 +1,5 @@
 using Domain.Models.Dtos;
+using Domain.Models.Dtos.User;
 using FluentValidation;
 
 namespace Api.Configuration.Validators;

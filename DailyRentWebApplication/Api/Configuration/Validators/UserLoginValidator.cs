@@ -1,4 +1,5 @@
 using Domain.Models.Dtos;
+using Domain.Models.Dtos.User;
 using FluentValidation;
 
 namespace Api.Configuration.Validators;
@@ -23,6 +24,6 @@ public class UserLoginValidator: AbstractValidator<UserLoginDto>
 
         RuleFor(dto => dto.Fingerprint)
             .NotNull().NotEmpty().WithMessage("Fingerprint cannot be empty or null")
-            .MinimumLength(10).WithMessage("Fingerprint cannot be less than 5 characters");
+            .MinimumLength(5).WithMessage("Fingerprint cannot be less than 5 characters");
     }
 }
