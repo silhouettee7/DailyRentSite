@@ -1,16 +1,21 @@
 using System.Security.Claims;
 using Api.Filters;
+using Api.Models;
 using Api.Utils;
 using Domain.Abstractions.Auth;
 using Domain.Models.Dtos;
+using Domain.Models.Dtos.User;
+using Domain.Models.Result;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Endpoints;
 
-public static class AuthEndPointsExt
+public static class AuthEndpointsExt
 {
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/auth");
+        var group = endpoints.MapGroup("/auth")
+            .WithTags("Auth");
 
         group.MapPost("/login", async (UserLoginDto userLoginDto, IAuthService authService, 
             HttpContext context, IConfiguration config, HttpResponseCreator responseCreator) =>
@@ -31,7 +36,7 @@ public static class AuthEndPointsExt
                 Path = "/auth"
             };
             context.Response.Cookies.Append("refreshToken", tokens.Value.refreshToken.ToString(), cookieOptions);
-            return Results.Ok(tokens.Value.accessToken);
+            return Results.Ok(new Token{AccessToken = tokens.Value.accessToken});
         })
         .AddEndpointFilter<ValidationFilter<UserLoginDto>>();
 
@@ -44,9 +49,8 @@ public static class AuthEndPointsExt
             var tokens = await authService.UpdateRefreshTokenAsync(refreshId, fingerprint, userId);
             if (!tokens.IsSuccess)
             {
-                return responseCreator.CreateResponse(tokens);
+                return responseCreator.CreateResponse(Result<string>.Failure(tokens.Error!));
             }
-
             var cookieOptions = new CookieOptions
             {
                 SameSite = SameSiteMode.Strict,
@@ -57,7 +61,7 @@ public static class AuthEndPointsExt
                 Path = "/auth"
             };
             context.Response.Cookies.Append("refreshToken", tokens.Value.refreshToken.ToString(), cookieOptions);
-            return responseCreator.CreateResponse(tokens);
+            return Results.Ok(new Token{AccessToken = tokens.Value.accessToken});
         });
         
         return endpoints;

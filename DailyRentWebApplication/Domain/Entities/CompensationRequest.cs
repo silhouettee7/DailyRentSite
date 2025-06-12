@@ -6,7 +6,7 @@ public class CompensationRequest
 {
     public int Id { get; set; }
     public string Description { get; set; }
-    public List<string> ProofPhotos { get; set; } = new();
+    public List<string> ProofPhotosFileNames { get; set; } = new();
     public decimal RequestedAmount { get; set; }
     public decimal? ApprovedAmount { get; set; }
     public CompensationStatus Status { get; set; } = CompensationStatus.Pending;
@@ -16,9 +16,7 @@ public class CompensationRequest
     
     public int BookingId { get; set; }
     public int TenantId { get; set; }
-    public int PropertyId { get; set; }
     
     public Booking Booking { get; set; }
     public User Tenant { get; set; }
-    public Property Property { get; set; }
 }

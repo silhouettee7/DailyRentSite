@@ -1,4 +1,6 @@
-namespace Domain.Models.Dtos;
+using Domain.Models.Dtos.Image;
+
+namespace Domain.Models.Dtos.Property;
 
 public class PropertySearchResponse
 {
@@ -8,6 +10,6 @@ public class PropertySearchResponse
     public decimal PricePerDay { get; set; }
     public decimal TotalPrice { get; set; }
     public double AverageRating { get; set; }
-    public int MainImageId { get; set; }
+    public ImageFileResponse MainImage { get; set; }
     public bool IsFavorite { get; set; }
 }

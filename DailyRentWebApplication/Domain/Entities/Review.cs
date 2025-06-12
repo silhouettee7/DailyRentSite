@@ -10,9 +10,7 @@ public class Review
     
     public int PropertyId { get; set; }
     public int AuthorId { get; set; }
-    public int BookingId { get; set; }
     
     public Property Property { get; set; }
     public User Author { get; set; }
-    public Booking Booking { get; set; }
 }

@@ -12,7 +12,5 @@ public class PropertyCreate
     public int Bedrooms { get; set; }
     public bool PetsAllowed { get; set; }
     public List<AmenityCreateRequest> Amenities { get; set; }
-    public List<IFormFile> PropertyImages { get; set; }
-    public IFormFile MainImage { get; set; }
     public LocationCreateRequest Location { get; set; }
 }

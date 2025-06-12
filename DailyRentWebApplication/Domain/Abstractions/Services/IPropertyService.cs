@@ -12,6 +12,9 @@ public interface IPropertyService
     Task<Result<List<PropertySearchResponse>>> SearchPropertiesAsync(PropertySearchRequest propertySearchRequest, int? userId);
     Task<Result<PropertyDetailsResponse>> GetPropertyDetailsAsync(int propertyId);
     Task<Result<List<PropertySearchResponse>>> GetFavoritePropertiesAsync(int userId);
+    Task<Result<List<OwnerProperty>>> GetOwnerPropertyAsync(int userId);
+    Task<Result> LikePropertyAsync(int propertyId, int userId);
+    Task<Result> DislikePropertyAsync(int propertyId, int userId);
     Task<Result<ImageFileResponse>> GetMainImageAsync(int imageId);
     Task<Result<List<ImageFileResponse>>> GetAllPropertyImagesAsync(List<int> imagesId);
 }

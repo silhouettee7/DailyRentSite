@@ -13,6 +13,5 @@ public class LocationConfiguration : IEntityTypeConfiguration<Location>
         builder.Property(l => l.Address).HasMaxLength(500).IsRequired();
         builder.Property(l => l.Country).HasMaxLength(100).IsRequired();
         builder.Property(l => l.District).HasMaxLength(100);
-        builder.Property(l => l.IsDeleted).HasDefaultValue(false);
     }
 }

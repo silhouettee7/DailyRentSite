@@ -18,17 +18,12 @@ public class CompensationRequestConfiguration : IEntityTypeConfiguration<Compens
                 v => v.ToString(), 
                 s => Enum.Parse<CompensationStatus>(s))
             .HasMaxLength(20);
-        
+
         builder.HasOne(cr => cr.Booking)
-            .WithMany(b => b.CompensationRequests)
-            .HasForeignKey(cr => cr.BookingId);
+            .WithOne(b => b.CompensationRequest);
             
         builder.HasOne(cr => cr.Tenant)
             .WithMany(u => u.CompensationRequests)
             .HasForeignKey(cr => cr.TenantId);
-            
-        builder.HasOne(cr => cr.Property)
-            .WithMany(p => p.CompensationRequests)
-            .HasForeignKey(cr => cr.PropertyId);
     }
 }

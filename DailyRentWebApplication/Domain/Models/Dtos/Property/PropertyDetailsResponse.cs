@@ -18,7 +18,7 @@ public class PropertyDetailsResponse
     public string OwnerName { get; set; }
     public string OwnerPhone { get; set; }
     public LocationDetailsResponse Location { get; set; }
-    public List<int> ImagesId { get; set; }
+    public List<ImageFileResponse> Images { get; set; }
     public List<AmenityDetailsResponse> Amenities { get; set; }
     public List<ReviewDetailsResponse> Reviews { get; set; }
 }

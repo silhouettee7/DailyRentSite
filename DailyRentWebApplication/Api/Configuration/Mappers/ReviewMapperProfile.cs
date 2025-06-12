@@ -8,6 +8,7 @@ public class ReviewMapperProfile: Profile
 {
     public ReviewMapperProfile()
     {
+        CreateMap<ReviewCreateRequest, Review>();
         CreateMap<Review, ReviewDetailsResponse>()
             .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
             .ForMember(dest => dest.CreatedDate, opt => opt.MapFrom(src => src.CreatedDate))

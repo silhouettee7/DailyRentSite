@@ -14,7 +14,7 @@ public class RefreshSessionConfiguration: IEntityTypeConfiguration<RefreshSessio
             .HasForeignKey(s => s.UserId);
         
         builder.Property(s => s.Fingerprint)
-            .HasMinLength(10)
+            .HasMinLength(5)
             .IsRequired();
     }
 }

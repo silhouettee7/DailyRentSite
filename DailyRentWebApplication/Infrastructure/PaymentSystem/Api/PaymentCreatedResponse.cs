@@ -1,7 +1,7 @@
-namespace Domain.Models.Payment;
+namespace Infrastructure.PaymentSystem.Api;
 
 
-public class PaymentResponse
+public class PaymentCreatedResponse
 {
     public string Id { get; set; }
     public string Status { get; set; }
