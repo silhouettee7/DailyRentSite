@@ -412,43 +412,6 @@ const predefinedAmenities = [
     'Завтрак', 'Рабочая зона', 'Камин', 'Утюг', 'Микроволновка'
 ];
 
-// Загрузка списка недвижимости пользователя
-async function loadOwnProperties() {
-    try {
-        const response = await authFetch('/properties/own');
-        if (response.ok) {
-            const properties = await response.json();
-            displayProperties(properties);
-        } else {
-            console.error('Ошибка загрузки недвижимости');
-        }
-    } catch (error) {
-        console.error('Ошибка:', error);
-    }
-}
-
-// Отображение списка недвижимости
-function displayProperties(properties) {
-    const container = document.getElementById('properties-container');
-    container.innerHTML = '';
-
-    if (properties.length === 0) {
-        container.innerHTML = '<p>У вас пока нет объектов недвижимости</p>';
-        return;
-    }
-
-    properties.forEach(property => {
-        const propertyElement = document.createElement('div');
-        propertyElement.className = 'property-card';
-        propertyElement.innerHTML = `
-                <h4>${property.title}</h4>
-                <p>${property.description || 'Без описания'}</p>
-                <button class="edit-property-btn" data-id="${property.id}">Редактировать</button>
-            `;
-        container.appendChild(propertyElement);
-    });
-}
-
 // Инициализация формы (добавление чекбоксов удобств)
 function initPropertyForm() {
     const container = document.getElementById('amenities-container');
@@ -594,7 +557,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (viewName === 'favorites') {
             document.getElementById('main-content').style.display = 'block';
             loadFavorites();
-        } else {
+        } else if (viewName === 'bookings') {
+            document.getElementById('bookings-content').style.display = 'block';
+            loadUserBookings();
+        }else {
             document.getElementById('main-content').style.display = 'block';
             // Можно добавить загрузку главной страницы
         }
@@ -635,18 +601,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // 2. Обработка кликов по карточке (кроме сердечка)
-        if (e.target.closest('.property-card')) {
-            const card = e.target.closest('.property-card');
-
-            // Проверяем, был ли клик именно на сердечке
-            if (e.target.closest('.favorite-icon')) {
-                return; // Уже обработали выше
-            }
-
-            const propertyId = card.querySelector('.book-btn').getAttribute('data-id');
-            showView('property-details', propertyId);
-        }
+        
+        
 
         // 3. Обработка кнопки "Назад"
         if (e.target.id === 'back-to-results') {
@@ -743,7 +699,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('login-modal').style.display = 'flex';
                 return;
             }
-            // Логика бронирования
+            // После создания кнопки бронирования добавьте:
+            setupBookingButton(property.id);
         });
 
         // Обработчик кнопки "Назад"
@@ -1003,11 +960,340 @@ function createPropertyCard(property, isFavoritePage = false) {
                 ${renderRatingStars(property.averageRating)}
                 <span>${property.averageRating.toFixed(1)}</span>
             </div>
-            <button class="book-btn" data-id="${property.id}">Забронировать</button>
+            <button class="book-btn" id="search-${property.id}" data-id="${property.id}">Забронировать</button>
+        </div>
+    `;
+    const bookBtn = propertyElement.querySelector('.book-btn');
+    bookBtn.addEventListener('click', function(e) {
+        e.stopPropagation(); // Останавливаем всплытие события
+        if (!authState.isTokenValid()) {
+            document.getElementById('login-modal').style.display = 'flex';
+            return;
+        }
+        setupBookingButton(property.id);
+    });
+
+    // Обработчик для остальной части карточки
+    propertyElement.addEventListener('click', function() {
+        showView('property-details', property.id);
+    });
+
+    return propertyElement;
+}
+function setupBookingButton(propertyId) {
+    const bookBtn = document.querySelector('.book-btn');
+    bookBtn.addEventListener('click', async () => {
+        if (!authState.isTokenValid()) {
+            document.getElementById('login-modal').style.display = 'flex';
+            return;
+        }
+
+        // Получаем данные из формы поиска
+        const checkInDate = document.getElementById('start-date').value;
+        const checkOutDate = document.getElementById('end-date').value;
+        const adultsCount = parseInt(document.querySelector('.counter-value[data-type="adults"]').textContent);
+        const childrenCount = parseInt(document.querySelector('.counter-value[data-type="children"]').textContent);
+        const hasPets = document.getElementById('has-pets').checked;
+
+        // Создаем DTO
+        const bookingRequest = {
+            PropertyId: propertyId,
+            CheckInDate: checkInDate,
+            CheckOutDate: checkOutDate,
+            AdultsCount: adultsCount,
+            ChildrenCount: childrenCount,
+            HasPets: hasPets
+        };
+
+        try {
+            const response = await authFetch('/bookings/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bookingRequest)
+            });
+
+            if (response.ok) {
+                alert('Бронирование успешно создано!');
+            } else {
+                const error = await response.json();
+                alert(`Ошибка: ${error.message || 'Не удалось создать бронирование'}`);
+            }
+        } catch (error) {
+            console.error('Ошибка:', error);
+            alert('Ошибка соединения с сервером');
+        }
+    });
+}
+
+// Загрузка бронирований пользователя
+async function loadUserBookings() {
+    try {
+        const response = await authFetch('/bookings/all');
+        if (response.ok) {
+            const bookings = await response.json();
+            displayBookings(bookings);
+        } else {
+            console.error('Ошибка загрузки бронирований');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+    }
+}
+
+// Отображение списка бронирований
+// Отображение списка бронирований
+function displayBookings(bookings) {
+    const bookingsContent = document.getElementById('bookings-content');
+    bookingsContent.innerHTML = `
+        <h1>Мои бронирования</h1>
+        <div class="bookings-list">
+            ${bookings.length > 0 ?
+        bookings.map(booking => createBookingCard(booking)).join('') :
+        '<p class="no-bookings">У вас пока нет бронирований</p>'
+    }
         </div>
     `;
 
-    return propertyElement;
+    // Добавляем обработчики для кнопок отмены
+    document.querySelectorAll('.cancel-booking-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const bookingId = e.target.dataset.bookingId;
+            if (confirm('Вы уверены, что хотите отменить бронирование?')) {
+                try {
+                    const response = await authFetch(`/bookings/cancel/${bookingId}`, {
+                        method: 'PATCH'
+                    });
+
+                    if (response.ok) {
+                        // Обновляем статус бронирования
+                        const bookingCard = e.target.closest('.booking-card');
+                        bookingCard.querySelector('.booking-status').textContent = 'Отменено';
+                        bookingCard.querySelector('.cancel-booking-btn').style.display = 'none';
+                        alert('Бронирование отменено');
+                    } else {
+                        const error = await response.json();
+                        alert(`Ошибка: ${error.message || 'Не удалось отменить бронирование'}`);
+                    }
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    alert('Ошибка соединения с сервером');
+                }
+            }
+        });
+    });
+
+    // Добавляем обработчики для кнопок оплаты
+    document.querySelectorAll('.pay-booking-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const bookingId = e.target.dataset.bookingId;
+            await processPayment(bookingId);
+        });
+    });
+}
+
+// Создание карточки бронирования
+// Создание карточки бронирования
+function createBookingCard(booking) {
+    const checkInDate = new Date(booking.checkInDate).toLocaleDateString('ru-RU');
+    const checkOutDate = new Date(booking.checkOutDate).toLocaleDateString('ru-RU');
+    const createdDate = new Date(booking.createdDate).toLocaleDateString('ru-RU');
+    const totalPrice = booking.totalPrice.toLocaleString('ru-RU');
+    const isPaid = booking.isPaid || false;
+
+    return `
+        <div class="booking-card" data-booking-id="${booking.id}">
+            <div class="booking-header">
+                <h3>${booking.propertyTitle}</h3>
+                <span class="booking-city">${booking.propertyCity}</span>
+            </div>
+            <div class="booking-dates">
+                <span>Заезд: ${checkInDate}</span>
+                <span>Выезд: ${checkOutDate}</span>
+            </div>
+            <div class="booking-meta">
+                <span>Гости: ${booking.adultsCount} взрослых, ${booking.childrenCount} детей</span>
+                <span>Животные: ${booking.hasPets ? 'Да' : 'Нет'}</span>
+            </div>
+            <div class="booking-footer">
+                <div class="booking-price">${totalPrice} ₽</div>
+                <div class="booking-status ${booking.status.toLowerCase()} ${isPaid ? 'paid' : ''}">
+                    ${getStatusText(booking.status)}${isPaid ? ' (Оплачено)' : ''}
+                </div>
+            </div>
+            <div class="booking-actions">
+                ${booking.status === 'Approved' && !isPaid ?
+        `<button class="pay-booking-btn" data-booking-id="${booking.id}">Оплатить</button>` : ''
+    }
+                ${booking.status !== 'Completed' && booking.status !== 'Rejected' && booking.status !== 'Cancelled' ?
+        `<button class="cancel-booking-btn" data-booking-id="${booking.id}">Отменить</button>` : ''
+    }
+            </div>
+            <div class="booking-created">Создано: ${createdDate}</div>
+        </div>
+    `;
+}
+// Обновленная функция загрузки собственной недвижимости
+async function loadOwnProperties() {
+    try {
+        // Загружаем список недвижимости пользователя
+        const propertiesResponse = await authFetch('/properties/own');
+        if (!propertiesResponse.ok) throw new Error('Ошибка загрузки недвижимости');
+
+        const properties = await propertiesResponse.json();
+
+        // Для каждой недвижимости загружаем бронирования
+        const propertiesWithBookings = await Promise.all(
+            properties.map(async property => {
+                const bookingsResponse = await authFetch(`/bookings/all/${property.id}`);
+                if (bookingsResponse.status === 200) {
+                    property.bookings = await bookingsResponse.json();
+                } else {
+                    property.bookings = [];
+                }
+                return property;
+            })
+        );
+
+        displayProperties(propertiesWithBookings);
+    } catch (error) {
+        console.error('Ошибка:', error);
+        document.getElementById('properties-container').innerHTML =
+            '<p class="error-message">Не удалось загрузить данные. Пожалуйста, попробуйте позже.</p>';
+    }
+}
+
+// Обновленная функция отображения недвижимости с бронированиями
+function displayProperties(properties) {
+    const container = document.getElementById('properties-container');
+    container.innerHTML = '';
+
+    if (properties.length === 0) {
+        container.innerHTML = '<p>У вас пока нет объектов недвижимости</p>';
+        return;
+    }
+
+    properties.forEach(property => {
+        const propertyElement = document.createElement('div');
+        propertyElement.className = 'property-card';
+        propertyElement.innerHTML = `
+            <div class="property-card-header">
+                <h4>${property.title}</h4>
+                <p>${property.description || 'Без описания'}</p>
+            </div>
+            <div class="property-bookings">
+                <h5>Заявки на бронирование:</h5>
+                ${property.bookings && property.bookings.length > 0 ?
+            renderBookingsList(property.bookings) :
+            '<p>Нет активных заявок</p>'
+        }
+            </div>
+        `;
+        container.appendChild(propertyElement);
+    });
+}
+
+// Функция для отображения списка бронирований для конкретной недвижимости
+function renderBookingsList(bookings) {
+    return `
+        <div class="bookings-list">
+            ${bookings.map(booking => `
+                <div class="booking-item" data-booking-id="${booking.id}">
+                    <div class="booking-dates">
+                        ${formatDate(booking.checkInDate)} - ${formatDate(booking.checkOutDate)}
+                    </div>
+                    <div class="booking-guests">
+                        ${booking.adultsCount} взрослых, ${booking.childrenCount} детей
+                        ${booking.hasPets ? ', с животными' : ''}
+                    </div>
+                    <div class="booking-price">
+                        ${booking.totalPrice.toLocaleString('ru-RU')} ₽
+                    </div>
+                    <div class="booking-status ${booking.status.toLowerCase()}">
+                        ${getStatusText(booking.status)}
+                    </div>
+                    ${booking.status === 'Pending' ? `
+                        <div class="booking-actions">
+                            <button class="approve-booking-btn" data-booking-id="${booking.id}">Принять</button>
+                            <button class="reject-booking-btn" data-booking-id="${booking.id}">Отклонить</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Функция для форматирования даты
+function formatDate(dateString) {
+    const options = { day: 'numeric', month: 'short' };
+    return new Date(dateString).toLocaleDateString('ru-RU', options);
+}
+
+// Добавляем обработчики для кнопок принятия/отклонения бронирования
+document.getElementById('properties-container').addEventListener('click', async (e) => {
+    if (e.target.classList.contains('approve-booking-btn')) {
+        const bookingId = e.target.dataset.bookingId;
+        await processBookingAction(bookingId, 'approve');
+    } else if (e.target.classList.contains('reject-booking-btn')) {
+        const bookingId = e.target.dataset.bookingId;
+        await processBookingAction(bookingId, 'reject');
+    }
+});
+
+// Функция для обработки действий с бронированием
+async function processBookingAction(bookingId, action) {
+    try {
+        const endpoint = action === 'approve' ?
+            `/bookings/approve/${bookingId}` :
+            `/bookings/reject/${bookingId}`;
+
+        const response = await authFetch(endpoint, {
+            method: 'PATCH'
+        });
+
+        if (response.ok) {
+            alert(`Бронирование успешно ${action === 'approve' ? 'подтверждено' : 'отклонено'}`);
+            // Обновляем список недвижимости
+            await loadOwnProperties();
+        } else {
+            const error = await response.json();
+            alert(`Ошибка: ${error.message || 'Не удалось выполнить действие'}`);
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Ошибка соединения с сервером');
+    }
+}
+// Функция для обработки оплаты бронирования
+async function processPayment(bookingId) {
+    try {
+        const response = await authFetch(`/bookings/pay/${bookingId}`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            console.log("ok");
+        } else {
+            const error = await response.text();
+                alert(`Ошибка: ${error || 'Не удалось выполнить оплату'}`);
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Ошибка соединения с сервером');
+    }
+}
+// Обновленная функция getStatusText для новых статусов
+function getStatusText(status) {
+    const statusMap = {
+        'Pending': 'Ожидает подтверждения',
+        'Approved': 'Подтверждено',
+        'Cancelled': 'Отменено',
+        'Completed': 'Завершено',
+        'Rejected': 'Отклонено'
+    };
+    return statusMap[status] || status;
 }
 function validateEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -8,12 +8,13 @@ public class BookingResponse
     public DateTime CheckInDate { get; set; }
     public DateTime CheckOutDate { get; set; }
     public decimal TotalPrice { get; set; }
-    public BookingStatus Status { get; set; }
+    public string Status { get; set; }
     public DateTime CreatedDate { get; set; } 
     public int AdultsCount { get; set; }
     public int ChildrenCount { get; set; }
     public bool HasPets { get; set; }
     public int PropertyId { get; set; }
+    public bool IsPaid { get; set; }
     public string PropertyTitle { get; set; }
     public string PropertyCity { get; set; }
 }

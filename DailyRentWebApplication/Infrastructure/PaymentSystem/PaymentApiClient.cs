@@ -11,7 +11,7 @@ public class PaymentApiClient(HttpClient httpClient, IMapper mapper): IPaymentAp
     private readonly HttpClient _httpClient = httpClient;
     public async Task<PaymentCreated> CreatePaymentAsync(PaymentCreate paymentCreate)
     {
-        var response = await httpClient.PostAsJsonAsync("/payments", paymentCreate);
+        var response = await httpClient.PostAsJsonAsync("v3/payments", paymentCreate);
         if (response.IsSuccessStatusCode)
         {
             var paymentCreatedResponse = await response.Content.ReadFromJsonAsync<PaymentCreatedResponse>();
@@ -22,7 +22,7 @@ public class PaymentApiClient(HttpClient httpClient, IMapper mapper): IPaymentAp
 
     public async Task<PaymentInfo> CheckForPaymentAsync(Guid paymentId)
     {
-        var response = await httpClient.GetAsync($"/payments/{paymentId}");
+        var response = await httpClient.GetAsync($"/v3/payments/{paymentId}");
         if (response.IsSuccessStatusCode)
         {
             var paymentInfoResponse = await response.Content.ReadFromJsonAsync<PaymentInfoResponse>();

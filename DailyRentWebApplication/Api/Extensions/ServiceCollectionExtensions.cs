@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Text;
 using Api.Auth;
 using Api.BackgroundServices;
@@ -15,6 +16,7 @@ using Infrastructure.DataBase.Repositories;
 using Infrastructure.FileStorage;
 using Infrastructure.FileStorage.Options;
 using Infrastructure.PaymentSystem;
+using Infrastructure.PaymentSystem.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -93,9 +95,17 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddHttpClients(this IServiceCollection services, IConfiguration config)
     {
+        services.Configure<PaymentOptions>(config.GetSection("PaymentConfig"));
         services.AddHttpClient<IPaymentApiClient, PaymentApiClient>(client =>
         {
             client.BaseAddress = new Uri(config.GetSection("PaymentConfig:BaseAddress").Value!);
+            var secretKey = config.GetSection("PaymentConfig:SecretKey").Value;
+            var shopId = config.GetSection("PaymentConfig:ShopId").Value;
+            var idempotenceKey = config.GetSection("PaymentConfig:IdempotenceKey").Value;
+            var authToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{shopId}:{secretKey}"));
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authToken);
+            client.DefaultRequestHeaders.Add("Idempotence-Key", idempotenceKey);
+            
         });
 
         return services;

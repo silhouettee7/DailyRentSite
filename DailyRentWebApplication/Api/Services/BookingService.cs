@@ -23,11 +23,22 @@ public class BookingService(
 {
     private readonly PaymentOptions _paymentOptions = paymentOptions.CurrentValue;
 
-    public async Task<Result<int>> CreateBookingAsync(BookingCreateRequest bookingCreateRequest)
+    public async Task<Result<int>> CreateBookingAsync(BookingCreateRequest bookingCreateRequest, int userId)
     {
         logger.LogDebug("Начато создание бронирования для propertyId: {PropertyId}", bookingCreateRequest.PropertyId);
-
+        
         var booking = mapper.Map<Booking>(bookingCreateRequest);
+        var isOthersBookingsExist = context.Bookings
+            .Any(b => b.TenantId == userId &&
+                      b.PropertyId == booking.PropertyId &&
+                      b.Status != BookingStatus.Cancelled &&
+                      b.Status != BookingStatus.Rejected &&
+                      booking.CheckInDate <= b.CheckOutDate &&
+                      booking.CheckOutDate >= b.CheckInDate);
+        if (isOthersBookingsExist)
+        {
+            return Result<int>.Failure(new Error("Booking with given property already exists", ErrorType.BadRequest));
+        }
         var propertyPricePerDay = await context.Properties
             .Where(p => p.Id == booking.PropertyId)
             .Select(p => p.PricePerDay)
@@ -38,10 +49,10 @@ public class BookingService(
             logger.LogWarning("Property не найден. PropertyId: {PropertyId}", booking.PropertyId);
             return Result<int>.Failure(new Error("Property is not found", ErrorType.NotFound));
         }
-
+        
         booking.TotalPrice = propertyPricePerDay * (decimal)(booking.CheckOutDate - booking.CheckInDate).TotalDays;
         logger.LogDebug("Рассчитана общая стоимость бронирования: {TotalPrice}", booking.TotalPrice);
-
+        booking.TenantId = userId;
         await context.Bookings.AddAsync(booking);
         await context.SaveChangesAsync();
 
@@ -91,15 +102,22 @@ public class BookingService(
             .Where(u => u.Id == userId)
             .SelectMany(u => u.Bookings)
             .ToListAsync();
-
-        if (userBookings.Count == 0)
+        var result = mapper.Map<List<BookingResponse>>(userBookings);
+        foreach (var booking in result)
+        {
+            booking.IsPaid = (await context.Payments
+                .Where(p => p.BookingId == booking.Id)
+                .FirstOrDefaultAsync())?.Paid ?? false;
+        }
+        
+        if (result.Count == 0)
         {
             logger.LogInformation("У пользователя нет бронирований. UserId: {UserId}", userId);
             return Result<List<BookingResponse>>.Success(SuccessType.NoContent, new List<BookingResponse>());
         }
 
         logger.LogDebug("Найдено {Count} бронирований для userId: {UserId}", userBookings.Count, userId);
-        return Result<List<BookingResponse>>.Success(SuccessType.Ok, mapper.Map<List<BookingResponse>>(userBookings));
+        return Result<List<BookingResponse>>.Success(SuccessType.Ok, result);
     }
 
     public async Task<Result> RejectBookingAsync(int bookingId, int userId)

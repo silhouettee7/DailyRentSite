@@ -17,9 +17,15 @@ public static class BookingEndpointsExt
             .RequireAuthorization();
 
         group.MapPost("/create", async (BookingCreateRequest bookingCreateRequest,
-            IBookingService bookingService, HttpResponseCreator creator) =>
+            IBookingService bookingService, HttpResponseCreator creator, HttpContext context) =>
         {
-            var bookingIdResult = await bookingService.CreateBookingAsync(bookingCreateRequest);
+            var userIdClaim = context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            var success = int.TryParse(userIdClaim?.Value, out int userId);
+            if (!success)
+            {
+                return Results.Forbid();
+            }
+            var bookingIdResult = await bookingService.CreateBookingAsync(bookingCreateRequest, userId);
 
             return creator.CreateResponse(bookingIdResult);
         });
