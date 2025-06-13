@@ -133,7 +133,50 @@
             </div>
         </div>
     </div>
-
+    <!-- Добавьте это рядом с другими модальными окнами -->
+    <div id="compensation-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" id="close-compensation">&times;</button>
+            <h2 class="modal-title">Создать заявку на компенсацию</h2>
+            <div id="compensation-error" class="server-error"></div>
+            <form id="compensation-form">
+                <input type="hidden" id="compensation-booking-id">
+                <div class="form-group">
+                    <label for="compensation-description">Описание заявки*</label>
+                    <textarea id="compensation-description" required minlength="20"></textarea>
+                    <div class="error-message" id="compensation-description-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="compensation-amount">Запрашиваемая сумма (₽)*</label>
+                    <input type="number" id="compensation-amount" min="1" required>
+                    <div class="error-message" id="compensation-amount-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="compensation-photos">Фотографии доказательств (макс. 5)</label>
+                    <input type="file" id="compensation-photos" multiple accept="image/*">
+                    <div class="error-message" id="compensation-photos-error"></div>
+                </div>
+                <button type="submit" class="submit-btn">Отправить заявку</button>
+            </form>
+        </div>
+    </div>
+    <!-- Модальное окно для просмотра заявки на компенсацию -->
+    <div id="view-compensation-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" id="close-view-compensation">&times;</button>
+            <h2 class="modal-title">Заявка на компенсацию</h2>
+            <div id="compensation-details"></div>
+            <div id="compensation-approve-form" style="display: none;">
+                <h3>Одобрить заявку</h3>
+                <div class="form-group">
+                    <label for="approve-amount">Сумма компенсации (₽)</label>
+                    <input type="number" id="approve-amount" min="0">
+                </div>
+                <button class="submit-btn" id="approve-compensation-btn">Одобрить</button>
+                <button class="cancel-btn" id="reject-compensation-btn">Отклонить</button>
+            </div>
+        </div>
+    </div>
     <!-- Модальное окно редактирования профиля -->
     <div id="edit-profile-modal" class="modal">
         <div class="modal-content">
@@ -351,7 +394,23 @@
         </div>
     </div>
 </div>
+<!-- Добавьте это перед закрывающим тегом </body> -->
+<div id="notification" class="notification hidden">
+    <div class="notification-content">
+        <span id="notification-message"></span>
+    </div>
+</div>
 
+<div id="confirmation-modal" class="modal">
+    <div class="modal-content">
+        <h2 class="modal-title" id="confirmation-title">Подтверждение</h2>
+        <p id="confirmation-message"></p>
+        <div class="confirmation-buttons">
+            <button id="confirm-cancel" class="cancel-btn">Отмена</button>
+            <button id="confirm-ok" class="submit-btn">Подтвердить</button>
+        </div>
+    </div>
+</div>
 <script src="index.js">
 </script>
 </body>

@@ -10,7 +10,7 @@ public class PaymentCreatedResponse
     public Confirmation Confirmation { get; set; }
     public DateTime CreatedAt { get; set; }
     public string Description { get; set; }
-    public Dictionary<string, object> Metadata { get; set; }
+    public Metadata Metadata { get; set; }
     public Recipient Recipient { get; set; }
     public bool Refundable { get; set; }
     public bool Test { get; set; }

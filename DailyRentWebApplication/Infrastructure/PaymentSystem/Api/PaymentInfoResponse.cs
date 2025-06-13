@@ -9,13 +9,17 @@ public class PaymentInfoResponse
     public DateTime CreatedAt { get; set; }
     public string Description { get; set; }
     public DateTime ExpiresAt { get; set; }
-    public Dictionary<string, object> Metadata { get; set; }
+    public Metadata Metadata { get; set; }
     public PaymentMethod PaymentMethod { get; set; }
     public Recipient Recipient { get; set; }
     public bool Refundable { get; set; }
     public bool Test { get; set; }
 }
 
+public class Metadata
+{
+    public string OrderId { get; set; }
+}
 public class AmountInfo
 {
     public string Value { get; set; }

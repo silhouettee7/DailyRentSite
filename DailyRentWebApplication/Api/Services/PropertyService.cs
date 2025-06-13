@@ -17,7 +17,6 @@ public class PropertyService(
     IFileStorageService fileStorageService,
     FileWorker fileWorker,
     IMapper mapper,
-    AppDbContext context,
     ILogger<PropertyService> logger)
     : IPropertyService
 {
@@ -82,40 +81,30 @@ public class PropertyService(
             propertySearchRequest.Children
         );
 
-        if (!context.Locations.Any(l => l.City == propertySearchRequest.City))
+        if (!await propertyRepository.AnyLocationByCityAsync(propertySearchRequest.City))
         {
             logger.LogWarning("Город не найден: {City}", propertySearchRequest.City);
             return Result<List<PropertySearchResponse>>.Failure(
                 new Error("Location not found", ErrorType.NotFound));
         }
 
-        var properties = await context.Properties
-            .Include(p => p.Location)
-            .Include(p => p.Reviews)
-            .Include(p => p.Images)
-            .Include(p => p.Bookings)
-            .Where(p => p.IsActive && 
-                        p.IsDeleted == false && 
-                        p.PetsAllowed == propertySearchRequest.HasPets &&
-                        p.Location.City == propertySearchRequest.City &&
-                        p.MaxGuests >= propertySearchRequest.Adults + propertySearchRequest.Children &&
-                        !p.Bookings.Any(b => b.Status == BookingStatus.Approved &&
-                                             b.CheckInDate < propertySearchRequest.EndDate.ToUniversalTime() &&
-                                             b.CheckOutDate > propertySearchRequest.StartDate.ToUniversalTime()))
-            .ToListAsync();
+        var properties = await propertyRepository.SearchPropertiesAsync(
+            propertySearchRequest.City,
+            propertySearchRequest.HasPets,
+            propertySearchRequest.Adults + propertySearchRequest.Children,
+            propertySearchRequest.StartDate.ToUniversalTime(),
+            propertySearchRequest.EndDate.ToUniversalTime());
         
         var propertySearchResponse = new List<PropertySearchResponse>();
         foreach (var property in properties)
         {
             var propertyResponse = mapper.Map<PropertySearchResponse>(property);
-            propertyResponse.IsFavorite = userId is not null && context.Users
-                .Include(u => u.FavoriteProperties)
-                .Where(u => userId == u.Id)
-                .SelectMany(u => u.FavoriteProperties)
-                .Any(p => p.Id == property.Id);
+            propertyResponse.IsFavorite = userId is not null && await propertyRepository.GetFavoritePropertiesIdsAsync(userId.Value)
+                .ContinueWith(t => t.Result.Contains(property.Id));
             propertyResponse.TotalPrice = property.PricePerDay * (decimal)(propertySearchRequest.EndDate - propertySearchRequest.StartDate).TotalDays;
             
-            var mainImageResult = await GetMainImageAsync(property.Images.First(i => i.IsMain).Id);
+            var mainImage = property.Images.First(i => i.IsMain);
+            var mainImageResult = await GetMainImageAsync(mainImage.Id);
             if (!mainImageResult.IsSuccess)
             {
                 logger.LogError("Ошибка при получении главного изображения: {Error}", mainImageResult.Error);
@@ -140,12 +129,8 @@ public class PropertyService(
     {
         logger.LogDebug("Запрос деталей объекта недвижимости. ID: {PropertyId}", propertyId);
 
-        var property = await context.Properties
-            .Include(p => p.Location)
-            .Include(p => p.Images)
-            .Include(p => p.Reviews)
-            .Include(p => p.Amenities)
-            .FirstOrDefaultAsync(p => p.Id == propertyId);
+        var properties = await propertyRepository.GetPropertiesWithDetailsAsync(propertyId);
+        var property = properties.FirstOrDefault();
 
         if (property is null)
         {
@@ -171,18 +156,8 @@ public class PropertyService(
     {
         logger.LogDebug("Запрос избранных объектов пользователя. UserID: {UserId}", userId);
 
-        var favoritePropertiesIds = await context.Users
-            .Include(u => u.FavoriteProperties)
-            .Where(u => u.Id == userId)
-            .SelectMany(u => u.FavoriteProperties.Select(p => p.Id))
-            .ToListAsync();
-
-        var favoriteProperties = await context.Properties
-            .Where(p => favoritePropertiesIds.Contains(p.Id))
-            .Include(p => p.Location)
-            .Include(p => p.Reviews)
-            .Include(p => p.Images)
-            .ToListAsync();
+        var favoritePropertiesIds = await propertyRepository.GetFavoritePropertiesIdsAsync(userId);
+        var favoriteProperties = await propertyRepository.GetFavoritePropertiesAsync(favoritePropertiesIds);
         
         var favoritePropertiesResponse = new List<PropertySearchResponse>();
         foreach (var property in favoriteProperties)
@@ -190,7 +165,8 @@ public class PropertyService(
             var propertyResponse = mapper.Map<PropertySearchResponse>(property);
             propertyResponse.IsFavorite = true;
             
-            var mainImageResult = await GetMainImageAsync(property.Images.First(i => i.IsMain).Id);
+            var mainImage = property.Images.First(i => i.IsMain);
+            var mainImageResult = await GetMainImageAsync(mainImage.Id);
             if (!mainImageResult.IsSuccess)
             {
                 logger.LogWarning("Ошибка при получении главного изображения: {Error}", mainImageResult.Error);
@@ -213,9 +189,7 @@ public class PropertyService(
 
     public async Task<Result<List<OwnerProperty>>> GetOwnerPropertyAsync(int userId)
     {
-        var properties = await context.Properties
-            .Where(p => p.OwnerId == userId)
-            .ToListAsync();
+        var properties = await propertyRepository.GetOwnerPropertiesAsync(userId);
         var response = mapper.Map<List<OwnerProperty>>(properties);
         return Result<List<OwnerProperty>>.Success(properties.Count == 0 
             ? SuccessType.NoContent 
@@ -224,42 +198,44 @@ public class PropertyService(
 
     public async Task<Result> LikePropertyAsync(int propertyId, int userId)
     {
-        var property = await context.Properties
-            .FindAsync(propertyId);
+        var property = await propertyRepository.GetPropertyWithUserAsync(propertyId);
         if (property is null)
         {
             logger.LogError("Property with {id} not found", propertyId);
             return Result.Failure(new Error("Property not found", ErrorType.NotFound));
         }
-        var user = await context.Users.FindAsync(userId);
-        if (user is null)
+        
+        var user = property.Owner;
+        if (user is null || user.Id != userId)
         {
             logger.LogError("User with {id} not found", userId);
             return Result.Failure(new Error("User not found", ErrorType.NotFound));
         }
+        
         user.FavoriteProperties.Add(property);
-        await context.SaveChangesAsync();
+        await propertyRepository.SaveChangesAsync();
         logger.LogInformation("Property with {id} was liked", propertyId);
         return Result.Success(SuccessType.NoContent);
     }
 
     public async Task<Result> DislikePropertyAsync(int propertyId, int userId)
     {
-        var property = await context.Properties
-            .FindAsync(propertyId);
+        var property = await propertyRepository.GetPropertyWithUserAsync(propertyId);
         if (property is null)
         {
             logger.LogError("Property with {id} not found", propertyId);
             return Result.Failure(new Error("Property not found", ErrorType.NotFound));
         }
-        var user = await context.Users.FindAsync(userId);
-        if (user is null)
+        
+        var user = property.Owner;
+        if (user is null || user.Id != userId)
         {
             logger.LogError("User with {id} not found", userId);
             return Result.Failure(new Error("User not found", ErrorType.NotFound));
         }
+        
         user.FavoriteProperties.Remove(property);
-        await context.SaveChangesAsync();
+        await propertyRepository.SaveChangesAsync();
         logger.LogInformation("Property with {id} was disliked", propertyId);
         return Result.Success(SuccessType.NoContent);
     }
@@ -268,28 +244,24 @@ public class PropertyService(
     {
         logger.LogDebug("Запрос главного изображения. ImageID: {ImageId}", imageId);
 
-        var mainImage = await context.PropertyImages
-            .Where(i => i.Id == imageId)
-            .Select(i => new { i.IsMain, i.FileName })
-            .FirstOrDefaultAsync();
-
-        if (mainImage is null)
+        var imageInfo = await propertyRepository.GetImageInfoAsync(imageId);
+        if (imageInfo is null)
         {
             logger.LogWarning("Изображение не найдено. ImageID: {ImageId}", imageId);
             return Result<ImageFileResponse>.Failure(new Error("Image not found", ErrorType.NotFound));
         }
 
-        if (!mainImage.IsMain)
+        if (!imageInfo.IsMain)
         {
             logger.LogWarning("Изображение не является главным. ImageID: {ImageId}", imageId);
             return Result<ImageFileResponse>.Failure(new Error("Image is not main", ErrorType.BadRequest));
         }
 
-        var contentResult = await fileStorageService.DownloadFileAsBase64Async(mainImage.FileName);
+        var contentResult = await fileStorageService.DownloadFileAsBase64Async(imageInfo.FileName);
         if (!contentResult.IsSuccess)
         {
             logger.LogError("Ошибка загрузки изображения. FileName: {FileName}, Error: {Error}", 
-                mainImage.FileName, contentResult.Error);
+                imageInfo.FileName, contentResult.Error);
             return Result<ImageFileResponse>.Failure(contentResult.Error!);
         }
 
@@ -297,7 +269,7 @@ public class PropertyService(
         {
             IsMain = true,
             ContentBase64 = contentResult.Value!,
-            MimeType = fileWorker.DefineMimeType(mainImage.FileName)
+            MimeType = fileWorker.DefineMimeType(imageInfo.FileName)
         };
         
         logger.LogDebug("Главное изображение получено. ImageID: {ImageId}", imageId);
@@ -308,10 +280,7 @@ public class PropertyService(
     {
         logger.LogDebug("Запрос изображений объекта. ImageIDs: {ImageIds}", string.Join(", ", imagesId));
 
-        var images = await context.PropertyImages
-            .Where(i => imagesId.Contains(i.Id))
-            .Select(i => new { i.IsMain, i.FileName })
-            .ToListAsync();
+        var images = await propertyRepository.GetImagesInfoAsync(imagesId);
         
         var imagesResponse = new List<ImageFileResponse>();
         foreach (var image in images)

@@ -1,4 +1,5 @@
 using AutoMapper;
+using Domain.Abstractions.Repositories;
 using Domain.Abstractions.Services;
 using Domain.Entities;
 using Domain.Models.Dtos.CompensationRequest;
@@ -9,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Api.Services;
 
 public class CompensationRequestService(
-    AppDbContext context,
+    ICompensationRequestRepository compensationRequestRepository,
     IMapper mapper,
     IFileStorageService fileStorageService,
     ILogger<CompensationRequestService> logger)
@@ -33,8 +34,8 @@ public class CompensationRequestService(
                 await fileStorageService.UploadFileAsync(fileName, image.Stream, image.ContentType);
             }
 
-            await context.CompensationRequests.AddAsync(compensationRequestEntity);
-            await context.SaveChangesAsync();
+            await compensationRequestRepository.AddAsync(compensationRequestEntity);
+            await compensationRequestRepository.SaveChangesAsync();
 
             logger.LogInformation("Запрос на компенсацию создан. RequestId: {RequestId}", compensationRequestEntity.Id);
             return Result<int>.Success(SuccessType.Created, compensationRequestEntity.Id);
@@ -52,9 +53,7 @@ public class CompensationRequestService(
 
         try
         {
-            var deletedCount = await context.CompensationRequests
-                .Where(cr => cr.Id == compensationRequestId)
-                .ExecuteDeleteAsync();
+            var deletedCount = await compensationRequestRepository.DeleteByIdAsync(compensationRequestId);
 
             if (deletedCount == 0)
             {
@@ -76,8 +75,7 @@ public class CompensationRequestService(
     {
         logger.LogDebug("Получение запроса на компенсацию по BookingId: {BookingId}", bookingId);
 
-        var compensationRequest = await context.CompensationRequests
-            .FirstOrDefaultAsync(cr => cr.BookingId == bookingId);
+        var compensationRequest = await compensationRequestRepository.GetByBookingIdAsync(bookingId);
 
         if (compensationRequest == null)
         {
@@ -97,10 +95,8 @@ public class CompensationRequestService(
         logger.LogDebug("Отклонение запроса на компенсацию. RequestId: {RequestId}, UserId: {UserId}", 
             compensationRequestId, userId);
 
-        var compensationRequest = await context.CompensationRequests
-            .Include(cr => cr.Booking)
-            .ThenInclude(b => b.Property)
-            .FirstOrDefaultAsync(c => c.Id == compensationRequestId);
+        var compensationRequest = await compensationRequestRepository
+            .GetWithBookingAndPropertyAsync(compensationRequestId);
 
         if (compensationRequest == null)
         {
@@ -117,7 +113,7 @@ public class CompensationRequestService(
         }
 
         compensationRequest.Status = CompensationStatus.Rejected;
-        await context.SaveChangesAsync();
+        await compensationRequestRepository.SaveChangesAsync();
 
         logger.LogInformation("Запрос на компенсацию отклонен. RequestId: {RequestId}", compensationRequestId);
         return Result.Success(SuccessType.NoContent);
@@ -128,11 +124,8 @@ public class CompensationRequestService(
         logger.LogDebug("Подтверждение запроса на компенсацию. RequestId: {RequestId}, UserId: {UserId}, Amount: {Amount}", 
             compensationRequestId, userId, amount);
 
-        var compensationRequest = await context.CompensationRequests
-            .Include(cr => cr.Booking)
-            .ThenInclude(b => b.Property)
-            .Include(cr => cr.Tenant)
-            .FirstOrDefaultAsync(c => c.Id == compensationRequestId);
+        var compensationRequest = await compensationRequestRepository
+            .GetWithBookingPropertyAndTenantAsync(compensationRequestId);
 
         if (compensationRequest == null)
         {
@@ -159,11 +152,30 @@ public class CompensationRequestService(
 
         compensationRequest.Tenant.Balance += amount;
         compensationRequest.Status = CompensationStatus.Approved;
-        await context.SaveChangesAsync();
+        await compensationRequestRepository.SaveChangesAsync();
 
         logger.LogInformation(
             "Запрос на компенсацию подтвержден. RequestId: {RequestId}, ApprovedAmount: {Amount}", 
             compensationRequestId, amount);
         return Result.Success(SuccessType.NoContent);
+    }
+
+    public async Task<Result<CompensationRequestResponse>> GetCompensationRequestById(int requestId)
+    {
+        logger.LogDebug("Получение запроса на компенсацию по Id: {RequestId}", requestId);
+
+        var compensationRequest = await compensationRequestRepository.GetByFilterAsync(r => r.Id == requestId);
+
+        if (compensationRequest == null)
+        {
+            logger.LogWarning("Запрос на компенсацию не найден.");
+            return Result<CompensationRequestResponse>.Failure(
+                new Error("There is no compensation request", ErrorType.NotFound));
+        }
+
+        logger.LogDebug("Запрос на компенсацию получен. RequestId: {RequestId}", compensationRequest.Id);
+        return Result<CompensationRequestResponse>.Success(
+            SuccessType.Ok, 
+            mapper.Map<CompensationRequestResponse>(compensationRequest));
     }
 }

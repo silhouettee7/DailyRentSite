@@ -10,13 +10,9 @@ public class CompensationRequestProfile: Profile
 {
     public CompensationRequestProfile()
     {
-        CreateMap<CompensationRequestCreate, CompensationRequestDto>()
-            .ForMember(dest => dest.ProofPhotos, opt => opt.MapFrom(src => src.ProofPhotos.Select(i => new ImageFileRequest
-            {
-                FileName = i.FileName,
-                Stream = i.OpenReadStream(),
-                ContentType = i.ContentType
-            })));
-        CreateMap<CompensationRequest, CompensationRequestResponse>();
+        CreateMap<CompensationRequest, CompensationRequestResponse>()
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+        CreateMap<CompensationRequestDto, CompensationRequest>()
+            .ForMember(dest => dest.ProofPhotosFileNames, opt => opt.Ignore());
     }
 }

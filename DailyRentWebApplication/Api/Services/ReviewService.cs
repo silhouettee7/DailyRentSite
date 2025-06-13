@@ -1,4 +1,5 @@
 using AutoMapper;
+using Domain.Abstractions.Repositories;
 using Domain.Abstractions.Services;
 using Domain.Entities;
 using Domain.Models.Dtos.Review;
@@ -8,7 +9,7 @@ using Infrastructure.DataBase;
 namespace Api.Services;
 
 public class ReviewService(
-    AppDbContext context, 
+    IReviewRepository repository, 
     IMapper mapper, 
     ILogger<IReviewService> logger): IReviewService
 {
@@ -20,8 +21,8 @@ public class ReviewService(
             var review = mapper.Map<Review>(reviewCreateRequest);
             review.AuthorId = userId;
             review.CreatedDate = DateTime.UtcNow;
-            await context.Reviews.AddAsync(review);
-            await context.SaveChangesAsync();
+            await repository.AddAsync(review);
+            await repository.SaveChangesAsync();
             logger.LogInformation("Отзыв создан от {UserId}", userId);
             return Result<int>.Success(SuccessType.Created, review.Id);
         }

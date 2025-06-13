@@ -41,6 +41,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPropertyRepository, PropertyRepository>();
         services.AddScoped<IRefreshSessionRepository, RefreshSessionRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<ICompensationRequestRepository, CompensationRequestRepository>();
+        services.AddScoped<IReviewRepository, ReviewRepository>();
         return services;
     }
     public static IServiceCollection AddAuth(this IServiceCollection services, IConfiguration config)
@@ -89,6 +92,7 @@ public static class ServiceCollectionExtensions
         services.AddHangfire(configuration => 
             configuration.UsePostgreSqlStorage(options => 
                 options.UseNpgsqlConnection(config.GetConnectionString("HangfireConnection"))));
+        services.AddHangfireServer();
         services.AddScoped<PaymentStatusCheckJob>();
         return services;
     }
@@ -101,10 +105,8 @@ public static class ServiceCollectionExtensions
             client.BaseAddress = new Uri(config.GetSection("PaymentConfig:BaseAddress").Value!);
             var secretKey = config.GetSection("PaymentConfig:SecretKey").Value;
             var shopId = config.GetSection("PaymentConfig:ShopId").Value;
-            var idempotenceKey = config.GetSection("PaymentConfig:IdempotenceKey").Value;
             var authToken = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{shopId}:{secretKey}"));
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", authToken);
-            client.DefaultRequestHeaders.Add("Idempotence-Key", idempotenceKey);
             
         });
 

@@ -13,7 +13,6 @@ public class UserService(
     IUserRepository userRepository,
     IPasswordHasher<User> hasher,
     IMapper mapper,
-    AppDbContext context,
     ILogger<UserService> logger)
     : IUserService
 {
@@ -44,7 +43,7 @@ public class UserService(
     {
         logger.LogDebug("Запрос профиля пользователя. UserId: {UserId}", userId);
 
-        var user = await context.Users.FindAsync(userId);
+        var user = await userRepository.GetByFilterAsync(x => x.Id == userId);
         if (user == null)
         {
             logger.LogWarning("Пользователь не найден. UserId: {UserId}", userId);
@@ -65,10 +64,11 @@ public class UserService(
         {
             Id = userId,
         };
-        context.Attach(user);
-        mapper.Map(userProfileEdit, user);
-        
-        await context.SaveChangesAsync();
+        userRepository.PatchUpdate(user, u =>
+        {
+            mapper.Map(userProfileEdit, user);
+        });
+        await userRepository.SaveChangesAsync();
 
         logger.LogInformation("Профиль пользователя обновлен. UserId: {UserId}", userId);
         return Result.Success(SuccessType.NoContent);

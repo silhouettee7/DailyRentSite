@@ -10,4 +10,5 @@ public interface ICompensationRequestService
     Task<Result<CompensationRequestResponse>> GetCompensationRequestByBookingId(int bookingId);
     Task<Result> RejectCompensationRequest(int compensationRequestId, int userId);
     Task<Result> ApproveCompensationRequest(int userId, int compensationRequestId, decimal amount);
+    Task<Result<CompensationRequestResponse>> GetCompensationRequestById(int requestId);
 }

@@ -1,3 +1,4 @@
+using Domain.Models.Dtos.CompensationRequest;
 using Domain.Models.Enums;
 
 namespace Domain.Models.Dtos.Booking;
@@ -15,6 +16,7 @@ public class BookingResponse
     public bool HasPets { get; set; }
     public int PropertyId { get; set; }
     public bool IsPaid { get; set; }
+    public bool IsPayProcess { get; set; }
     public string PropertyTitle { get; set; }
     public string PropertyCity { get; set; }
 }

@@ -91,7 +91,15 @@ public static class PropertyEndpointsExt
             return httpCreator.CreateResponse(propertyIdResult);
         })
         .DisableAntiforgery()
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .WithName("CreateProperty")
+        .WithSummary("Создание нового объекта недвижимости")
+        .WithDescription("Позволяет владельцу создать новый объект недвижимости с основными данными, фотографиями и удобствами")
+        .Produces<int>(StatusCodes.Status201Created)
+        .ProducesProblem(StatusCodes.Status400BadRequest, "text/plain")
+        .ProducesProblem(StatusCodes.Status401Unauthorized, "text/plain")
+        .ProducesProblem(StatusCodes.Status403Forbidden, "text/plain")
+        .ProducesProblem(StatusCodes.Status500InternalServerError, "text/plain");;
 
         group.MapPost("/search", async ([FromBody]PropertySearchRequest propertySearchRequest, IPropertyService propertyService,
             HttpResponseCreator httpCreator, HttpContext context) =>
@@ -101,14 +109,27 @@ public static class PropertyEndpointsExt
             var propertySearchResponse =
                 await propertyService.SearchPropertiesAsync(propertySearchRequest, success ? userId : default);
             return httpCreator.CreateResponse(propertySearchResponse);
-        });
+        })
+        .WithName("SearchProperties")
+        .WithSummary("Поиск объектов недвижимости")
+        .WithDescription("Возвращает список объектов недвижимости по заданным критериям поиска")
+        .Produces<List<PropertySearchResponse>>(StatusCodes.Status200OK, "application/json")
+        .ProducesProblem(StatusCodes.Status400BadRequest, "text/plain")
+        .ProducesProblem(StatusCodes.Status404NotFound, "text/plain")
+        .ProducesProblem(StatusCodes.Status500InternalServerError, "text/plain");;
 
         group.MapGet("/details/{propertyId:int}", async (int propertyId,
             IPropertyService propertyService, HttpResponseCreator httpCreator) =>
         {
             var propertyDetailResponse = await propertyService.GetPropertyDetailsAsync(propertyId);
             return httpCreator.CreateResponse(propertyDetailResponse);
-        });
+        })
+        .WithName("GetPropertyDetails")
+        .WithSummary("Получение детальной информации об объекте")
+        .WithDescription("Возвращает полную информацию об объекте недвижимости, включая фотографии, отзывы и удобства")
+        .Produces<PropertyDetailsResponse>(StatusCodes.Status200OK, "application/json")
+        .ProducesProblem(StatusCodes.Status404NotFound, "text/plain")
+        .ProducesProblem(StatusCodes.Status500InternalServerError, "text/plain");
 
         group.MapPatch("/like/{propertyId:int}", async (int propertyId, IPropertyService propertyService,
             HttpResponseCreator creator, HttpContext context) =>
@@ -122,7 +143,17 @@ public static class PropertyEndpointsExt
 
             var result = await propertyService.LikePropertyAsync(propertyId, userId);
             return creator.CreateResponse(result);
-        });
+        })
+        .RequireAuthorization()
+        .WithName("LikeProperty")
+        .WithSummary("Добавление объекта в избранное")
+        .WithDescription("Позволяет пользователю добавить объект недвижимости в список избранного")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status400BadRequest, "text/plain")
+        .ProducesProblem(StatusCodes.Status401Unauthorized, "text/plain")
+        .ProducesProblem(StatusCodes.Status403Forbidden, "text/plain")
+        .ProducesProblem(StatusCodes.Status404NotFound, "text/plain")
+        .ProducesProblem(StatusCodes.Status500InternalServerError, "text/plain");
         
         group.MapPatch("/dislike/{propertyId:int}", async (int propertyId, IPropertyService propertyService,
             HttpResponseCreator creator, HttpContext context) =>
@@ -136,7 +167,18 @@ public static class PropertyEndpointsExt
 
             var result = await propertyService.DislikePropertyAsync(propertyId, userId);
             return creator.CreateResponse(result);
-        });
+        })
+        .RequireAuthorization()
+        .WithName("DislikeProperty")
+        .WithSummary("Удаление объекта из избранного")
+        .WithDescription("Позволяет пользователю удалить объект недвижимости из списка избранного")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status400BadRequest, "text/plain")
+        .ProducesProblem(StatusCodes.Status401Unauthorized, "text/plain")
+        .ProducesProblem(StatusCodes.Status403Forbidden, "text/plain")
+        .ProducesProblem(StatusCodes.Status404NotFound, "text/plain")
+        .ProducesProblem(StatusCodes.Status500InternalServerError, "text/plain");
+        
         group.MapGet("/favorites", async (IPropertyService propertyService,
             HttpResponseCreator httpCreator, HttpContext context) =>
         {
@@ -150,7 +192,14 @@ public static class PropertyEndpointsExt
                 await propertyService.GetFavoritePropertiesAsync(userId);
             return httpCreator.CreateResponse(propertySearchResponse);
         })
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .WithName("GetFavoriteProperties")
+        .WithSummary("Получение списка избранных объектов")
+        .WithDescription("Возвращает список объектов недвижимости, добавленных пользователем в избранное")
+        .Produces<List<PropertySearchResponse>>(StatusCodes.Status200OK, "application/json")
+        .ProducesProblem(StatusCodes.Status401Unauthorized, "text/plain")
+        .ProducesProblem(StatusCodes.Status403Forbidden, "text/plain")
+        .ProducesProblem(StatusCodes.Status500InternalServerError, "text/plain");
 
         group.MapGet("/own", async (IPropertyService propertyService,
             HttpResponseCreator httpCreator, HttpContext context) =>
@@ -166,7 +215,14 @@ public static class PropertyEndpointsExt
             
             return httpCreator.CreateResponse(propertySearchResponse);
         })
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .WithName("GetOwnProperties")
+        .WithSummary("Получение собственных объектов недвижимости")
+        .WithDescription("Возвращает список объектов недвижимости, принадлежащих текущему пользователю")
+        .Produces<List<OwnerProperty>>(StatusCodes.Status200OK, "application/json")
+        .ProducesProblem(StatusCodes.Status401Unauthorized, "text/plain")
+        .ProducesProblem(StatusCodes.Status403Forbidden, "text/plain")
+        .ProducesProblem(StatusCodes.Status500InternalServerError, "text/plain");
         
         return endpoints;
     }

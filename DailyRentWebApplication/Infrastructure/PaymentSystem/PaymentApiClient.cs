@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using AutoMapper;
 using Domain.Abstractions.Clients;
 using Domain.Models.Payment;
@@ -11,10 +12,14 @@ public class PaymentApiClient(HttpClient httpClient, IMapper mapper): IPaymentAp
     private readonly HttpClient _httpClient = httpClient;
     public async Task<PaymentCreated> CreatePaymentAsync(PaymentCreate paymentCreate)
     {
-        var response = await httpClient.PostAsJsonAsync("v3/payments", paymentCreate);
+        httpClient.DefaultRequestHeaders.Add("Idempotence-Key", Guid.NewGuid().ToString());
+        var response = await httpClient.PostAsJsonAsync("payments", paymentCreate, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        });
         if (response.IsSuccessStatusCode)
         {
-            var paymentCreatedResponse = await response.Content.ReadFromJsonAsync<PaymentCreatedResponse>();
+            var paymentCreatedResponse = await response.Content.ReadFromJsonAsync<PaymentCreatedResponse>(new JsonSerializerOptions{ PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower});
             return mapper.Map<PaymentCreated>(paymentCreatedResponse);
         }
         throw new Exception($"Payment creation failed with status code {response.StatusCode}");
@@ -22,7 +27,7 @@ public class PaymentApiClient(HttpClient httpClient, IMapper mapper): IPaymentAp
 
     public async Task<PaymentInfo> CheckForPaymentAsync(Guid paymentId)
     {
-        var response = await httpClient.GetAsync($"/v3/payments/{paymentId}");
+        var response = await httpClient.GetAsync($"payments/{paymentId}");
         if (response.IsSuccessStatusCode)
         {
             var paymentInfoResponse = await response.Content.ReadFromJsonAsync<PaymentInfoResponse>();

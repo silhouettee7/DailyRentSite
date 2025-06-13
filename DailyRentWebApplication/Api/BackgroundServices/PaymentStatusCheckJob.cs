@@ -32,6 +32,6 @@ public class PaymentStatusCheckJob(IPaymentApiClient apiClient, AppDbContext con
         }
         BackgroundJob.Schedule(
             () => CheckStatusAsync(paymentExternalId, paymentId, attemptCount + 1), 
-            TimeSpan.FromMinutes(6));
+            TimeSpan.FromMinutes(1));
     }
 }

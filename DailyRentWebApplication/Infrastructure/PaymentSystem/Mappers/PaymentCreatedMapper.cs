@@ -13,7 +13,7 @@ public class PaymentCreatedMapper: Profile
     {
         CreateMap<PaymentCreatedResponse, PaymentCreated>()
             .ForMember(dest => dest.ExternalId, opt => opt.MapFrom(src => Guid.Parse(src.Id)))
-            .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => decimal.Parse(src.Amount.Value)))
+            .ForMember(dest => dest.Amount, opt => opt.MapFrom(src => decimal.Parse(string.Join(',',src.Amount.Value.Split('.', StringSplitOptions.RemoveEmptyEntries)))))
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description))
             .ForMember(dest => dest.Currency, opt => opt.MapFrom(src => src.Amount.Currency))
             .ForMember(dest => dest.Paid, opt => opt.MapFrom(src => src.Paid))
